@@ -10,7 +10,7 @@
 </style> -->
 
 <h1 align="center">
-  <span style="color: teal; font-family: Consolas;"></span> Enhancing Cooperative Multi-Agent Reinforcement Learning with State Modelling and Adversarial Exploration
+  <span style="color: teal; font-family: Consolas;"></span> Enhancing Cooperative Multi-Agent Reinforcement Learning with State Modelling and Adversarial Exploration (Accepted at ICML 2025)
 </h1>
 
 <div align="center">
