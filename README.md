@@ -1,6 +1,5 @@
 ## Official Code of "Enhancing Cooperative Multi-Agent Reinforcement Learning with State Modelling and Adversarial Exploration" - Accepted at ICML 2025
 
-### Abstract
 
 <div align="center">
   <a href="https://ddaedalus.github.io/=en" target="_blank">Andreas&nbsp;Kontogiannis</a><sup>1,2</sup> &ensp; <b>&middot;</b> &ensp;
@@ -13,6 +12,7 @@
   <sup>4</sup> Duke University &emsp; <sup>5</sup> University of Piraeus &emsp; <br> <br> <br> 
 
 
+### Abstract
 
 
 ![smpe](smpe)
