@@ -11,7 +11,7 @@
   <a href="https://scholar.google.com/citations?user=PBX9aQUAAAAJ&hl=en" target="_blank">George&nbsp;Vouros</a><sup>5</sup>  
   <br>
   <sup>1</sup> National Technical University of Athens <sup>2</sup> Archimedes AI &emsp; &emsp; <sup>3</sup> ETH Zurich &emsp; <br>
-  <sup>4</sup> Duke University &emsp; <sup>5</sup> University of Piraeus &emsp; <br>
+  <sup>4</sup> Duke University &emsp; <sup>5</sup> University of Piraeus &emsp; <br> <br> <br> 
 
 
 
