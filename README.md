@@ -1,5 +1,17 @@
-## Official Code of "Enhancing Cooperative Multi-Agent Reinforcement Learning with State Modelling and Adversarial Exploration" - Accepted at ICML 2025
 
+<!--             
+<style>
+  .texttt {
+    font-family: Consolas; /* Monospace font */
+    font-size: 1em; /* Match surrounding text size */
+    color: teal; /* Add this line to set text color to blue */
+    letter-spacing: 0; /* Adjust if needed */
+  }
+</style> -->
+
+<h1 align="center">
+  <span style="color: teal; font-family: Consolas;">EQ-VAE</span>: Enhancing Cooperative Multi-Agent Reinforcement Learning with State Modelling and Adversarial Exploration
+</h1>
 
 <div align="center">
   <a href="https://ddaedalus.github.io/=en" target="_blank">Andreas&nbsp;Kontogiannis</a><sup>1,2</sup> &ensp; <b>&middot;</b> &ensp;
