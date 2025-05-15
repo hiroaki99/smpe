@@ -174,53 +174,6 @@ class VAEController:
 
     def train_agent_vaes(self, t_env):
 
-        # ## ABLATION HERE
-        # self.load_models(t_env=2000000)
-        # self.load_filters(t_env=2000000)
-
-
-        # # case 1
-        # obs1 = th.tensor(np.array([-1, -1,  0, -1, -1,  0,  4,  4,  1,  4,  2,  1, -1, -1,  0])).float()
-        # obs2 = th.tensor(np.array([-1, -1,  0, -1, -1,  0,  4,  4,  1,  4,  6,  1, -1, -1,  0])).float()
-        # obs3 = th.tensor(np.array([ 3,  3,  4, -1, -1,  0,  2,  4,  2, -1, -1,  0, -1, -1,  0])).float()
-        
-        # w_out_1 = self.filters[0].forward(obs1)
-        # z_others_1, _, _ = self.agent_models[0].encoder.forward(obs1)
-        # predicted_states_1 = self.agent_models[0].decoder.forward(z_others_1)
-        # print(w_out_1[:15])
-        # print(w_out_1[15:])
-
-        # print()
-
-        # w_out_2 = self.filters[1].forward(obs2)
-        # z_others_2, _, _ = self.agent_models[1].encoder.forward(obs2)
-        # predicted_states_1 = self.agent_models[1].decoder.forward(z_others_2)
-        # print(w_out_2[:15])
-        # print(w_out_2[15:])
-
-        # print()
-
-        # w_out_3 = self.filters[2].forward(obs3)
-        # z_others_3, _, _ = self.agent_models[2].encoder.forward(obs3)
-        # predicted_states_1 = self.agent_models[2].decoder.forward(z_others_3)
-        # print(w_out_3[:15])
-        # print(w_out_3[15:])
-
-        # # [0.3000, 0.3000, 0.3593, 0.3000, 0.3000, 0.4270, 0.7819, 0.5778, 0.4343, 0.3000, 0.5399, 0.4022, 0.3000, 0.3000, 0.3000]
-        # # [0.3000, 0.3000, 0.4272, 0.4875, 0.3190, 0.4167, 0.5239, 0.4261, 0.3000, 0.5532, 0.7732, 0.4685, 0.7956, 0.6300, 0.4922]
-
-        # # [0.3000, 0.3000, 0.6253, 0.3000, 0.3000, 0.3000, 0.9425, 0.5582, 0.3000, 0.3000, 0.7283, 0.4628, 0.3000, 0.3000, 0.3000]
-        # # [0.4299, 0.3000, 0.6638, 0.3839, 0.3811, 0.3000, 0.4112, 0.3240, 0.5440, 0.7822, 0.9387, 0.5779, 0.9910, 0.7828, 0.7878]
-
-        # # case 2
-        # obs1 = np.array([-1., -1.,  0., -1., -1.,  0.,  4.,  4.,  3., -1., -1.,  0., -1., -1.,  0.])
-        # obs2 = np.array([ 3.,  3.,  8., -1., -1.,  0.,  3.,  4.,  3.,  4.,  0.,  2., -1., -1.,  0.])
-        # obs3 = np.array([ 2.,  3.,  8.,  3.,  7.,  8.,  4.,  4.,  2.,  3.,  8.,  3., -1., -1.,  0.])
-
-        # time.sleep(300)
-        ##
-
-
         batch_size = self.args.agent_vae_batch_size
         epochs = self.args.agent_epochs
 
@@ -383,16 +336,7 @@ class VAEController:
                     last_epoch_kl = kl_loss__.item()
                     last_agents_kl.append(kl_loss__)
                     if self.args.use_aux:
-                            last_agents_aux.append(aux_loss.item())
-
-        print(f"Agent VAE first epoch: {np.mean(first_epoch_loss)}, and last epoch: {np.mean(last_agents_loss)}")
-        print(f"Agent KL first epoch: {np.mean(first_agents_kl)}, and last epoch: {np.mean(last_agents_kl)}")
-        # if self.args.use_w: print("wi", w_i[10, :])
-        
-
-        if self.args.use_aux:
-            print(f"Aux Loss first epoch: {np.mean(first_agents_aux)}, and last epoch: {np.mean(last_agents_aux)}")
-        print()
+                            last_agents_aux.append(aux_loss.item())        
 
         if t_env % self.args.save_period == 0 :
             self.save_models(t_env=t_env)
@@ -430,12 +374,7 @@ class VAEController:
             intr_rews_agent = self.args.z_rew_coeff * z_rewards + self.args.obs_rew_coeff * obs_rewards
             new_rewards[:, :, agent_id] = self.args.true_rew_coeff * batch["reward"][:, :].squeeze(-1) + intr_rews_agent
 
-        # print("Mean intrinsic rewards:", np.mean(intr_rewards), "+", np.std(intr_rewards))
-        # print("Mean extrinsic rewards:", np.mean(extrinsic_rewards), "+", np.std(extrinsic_rewards))
         new_rewards = new_rewards.detach().to(self.args.device)
-        print(intr_rews_agent.mean())
-        print(batch["reward"][:, :].mean())
-        print()
         return new_rewards  # batch_size x (maxseqlen-1) x num_agents x 1
 
 
