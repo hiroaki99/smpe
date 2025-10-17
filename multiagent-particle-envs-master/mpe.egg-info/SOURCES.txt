@@ -18,6 +18,7 @@ mpe.egg-info/requires.txt
 mpe.egg-info/top_level.txt
 mpe/scenarios/__init__.py
 mpe/scenarios/climbing_spread.py
+mpe/scenarios/custom_spread.py
 mpe/scenarios/multi_speaker_listener.py
 mpe/scenarios/simple.py
 mpe/scenarios/simple_adversary.py

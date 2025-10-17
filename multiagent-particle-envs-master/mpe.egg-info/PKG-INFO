@@ -1,4 +1,4 @@
-Metadata-Version: 2.1
+Metadata-Version: 2.4
 Name: mpe
 Version: 0.0.1
 Summary: Multi-Agent Goal-Driven Communication Environment
@@ -6,3 +6,11 @@ Home-page: https://github.com/openai/multiagent-public
 Author: Igor Mordatch
 Author-email: mordatch@openai.com
 License-File: LICENSE.txt
+Requires-Dist: gym
+Requires-Dist: numpy-stl
+Dynamic: author
+Dynamic: author-email
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: requires-dist
+Dynamic: summary
