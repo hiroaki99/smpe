@@ -165,9 +165,41 @@ class _GymmaWrapper(MultiAgentEnv):
         # TODO: This is only suitable for a discrete 1 dimensional action space for each agent
         return flatdim(self.longest_action_space)
 
+    # def reset(self):
+    #     """ Returns initial observations and states"""
+    #     self._obs = self._env.reset()
+    #     self._obs = [
+    #         np.pad(
+    #             o,
+    #             (0, self.longest_observation_space.shape[0] - len(o)),
+    #             "constant",
+    #             constant_values=0,
+    #         )
+    #         for o in self._obs
+    #     ]
+
+    #     # --- 10/20 最新のgym環境がinfoの戻り値も必要とするため追加
+    #     reset_output = self._env.reset()
+    #     if isinstance(reset_output, tuple) and len(reset_output) == 2:
+    #          self._obs, info = reset_output
+    #     else:
+    #          self._obs = reset_output
+    #          info = {} # infoを空の辞書として定義
+
+    #     return self.get_obs(), self.get_state()
+
     def reset(self):
         """ Returns initial observations and states"""
-        self._obs = self._env.reset()
+        
+        # 1. 環境をリセットし、obsとinfoを安全に受け取る（1回のみ実行）
+        reset_output = self._env.reset()
+        if isinstance(reset_output, tuple) and len(reset_output) == 2:
+             self._obs, info = reset_output
+        else:
+             self._obs = reset_output
+             info = {} # infoを空の辞書として定義
+        
+        # 2. 観測のパディング処理を適用 (自己完結させる)
         self._obs = [
             np.pad(
                 o,
@@ -177,6 +209,7 @@ class _GymmaWrapper(MultiAgentEnv):
             )
             for o in self._obs
         ]
+
         return self.get_obs(), self.get_state()
 
     def render(self):

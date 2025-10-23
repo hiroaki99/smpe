@@ -772,6 +772,22 @@ def my_main(_run, _config, _log):
     np.random.seed(config["seed"])
     th.manual_seed(config["seed"])
     config['env_args']['seed'] = config["seed"]
+    env_name = config["env_args"]["key"].replace(":", "_").replace("/", "_")
+    unique_token = "{}__{}__{}".format(config["name"], env_name, _config["seed"])
+    unique_token = unique_token.replace(":", "_")
+
+    local_results_path = os.path.join(
+        dirname(dirname(abspath(__file__))),
+        "results",
+        unique_token
+    )
+
+    os.makedirs(local_results_path, exist_ok=True)
+    
+    _config["local_results_path"] = local_results_path
+    
+    logger = Logger(_log)
+    logger.setup_sacred(_run)
 
     # run the framework
     run(_run, config, _log)
@@ -828,7 +844,7 @@ if __name__ == '__main__':
             config_dict = yaml.load(f, Loader=yaml.FullLoader)
             print("----------------success loading----------------")
         except yaml.YAMLError as exc:
-            assert False, "default.yaml error: {}".format(exc).replace(":", "_")
+            assert False, "default.yaml error: {}".format(exc)
 
     # Load algorithm and env base configs
     env_config = _get_config(params, "--env-config", "envs")
@@ -842,6 +858,21 @@ if __name__ == '__main__':
     except:
         map_name = config_dict["env_args"]["key"]    
     
+    env_name = "default_env"
+    for param in params:
+        if "env_args.key=" in param:
+            env_name = param.split("=")[1].replace(":", "_").replace("/", "_")
+            break
+
+    results_save_path = os.path.join(
+        dirname(abspath(__file__)),
+        "results",
+        "sacred",
+        env_name
+    )
+    
+    os.makedirs(results_save_path, exist_ok=True)
+    
     # now add all the config to sacred
     ex.add_config(config_dict)
     
@@ -849,11 +880,12 @@ if __name__ == '__main__':
         if param.startswith("env_args.map_name"):
             map_name = param.split("=")[1]
         elif param.startswith("env_args.key"):
-            map_name = param.split("=")[1].replace(":", "_")
+            map_name = param.split("=")[1]
 
     # Save to disk by default for sacred
-    logger.info("Saving to FileStorageObserver in results/sacred.")
-    file_obs_path = os.path.join(results_path, f"sacred/{config_dict['name']}/{map_name}")
+    file_obs_path = results_save_path
+    logger.info("Saving to FileStorageObserver in {}.".format(file_obs_path))
+    # file_obs_path = os.path.join(results_path, f"sacred/{config_dict['name']}/{map_name}")
 
     # ex.observers.append(MongoObserver(db_name="marlbench")) #url='172.31.5.187:27017'))
     ex.observers.append(FileStorageObserver.create(file_obs_path))

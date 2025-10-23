@@ -53,19 +53,19 @@ for N in range(2, 11, 2):
 
 # 比較のために追加
 # Registers the custom spread environment:
-for N in range(2, 4):  # エージェント数を2か3に設定
-    scenario_name = "custom_spread"
-    gymkey = f"CustomSpread-{N}ag-v0"
-    scenario = scenarios.load(scenario_name + ".py").Scenario()
-    world = scenario.make_world(num_agents=N) # ここでエージェント数を渡す
+# for N in range(2, 4):  # エージェント数を2か3に設定
+#     scenario_name = "custom_spread"
+#     gymkey = f"CustomSpread-{N}ag-v0"
+#     scenario = scenarios.load(scenario_name + ".py").Scenario()
+#     world = scenario.make_world(num_agents=N) # ここでエージェント数を渡す
 
-    register(
-        gymkey,
-        entry_point="mpe.environment:MultiAgentEnv",
-        kwargs={
-            "world": world,
-            "reset_callback": scenario.reset_world,
-            "reward_callback": scenario.reward,
-            "observation_callback": scenario.observation,
-        },
-    )
+#     register(
+#         gymkey,
+#         entry_point="mpe.environment:MultiAgentEnv",
+#         kwargs={
+#             "world": world,
+#             "reset_callback": scenario.reset_world,
+#             "reward_callback": scenario.reward,
+#             "observation_callback": scenario.observation,
+#         },
+#     )

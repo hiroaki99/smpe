@@ -1,0 +1,111 @@
+{
+  "artifacts": [],
+  "command": "my_main",
+  "experiment": {
+    "base_dir": "C:\\Users\\hiroa\\Desktop\\smpe",
+    "dependencies": [
+      "gym==0.26.0",
+      "munch==2.5.0",
+      "numpy==1.23.2",
+      "sacred==0.8.2",
+      "torch==1.12.1+cu116"
+    ],
+    "mainfile": "main.py",
+    "name": "pymarl",
+    "repositories": [
+      {
+        "commit": "dc608a05b889061c11e9af27172db8c8ea226060",
+        "dirty": true,
+        "url": "https://github.com/hiroaki99/smpe.git"
+      },
+      {
+        "commit": "dc608a05b889061c11e9af27172db8c8ea226060",
+        "dirty": true,
+        "url": "https://github.com/hiroaki99/smpe.git"
+      },
+      {
+        "commit": "dc608a05b889061c11e9af27172db8c8ea226060",
+        "dirty": true,
+        "url": "https://github.com/hiroaki99/smpe.git"
+      }
+    ],
+    "sources": [
+      [
+        "main.py",
+        "_sources\\main_d361994833fd1871eaafebe113ba1b4c.py"
+      ],
+      [
+        "run.py",
+        "_sources\\run_661ea10bb09b0395ed7e53aaea4a10bc.py"
+      ],
+      [
+        "utils\\logging.py",
+        "_sources\\logging_fa20458ffd597c671454d2e150b88c27.py"
+      ]
+    ]
+  },
+  "fail_trace": [
+    "Traceback (most recent call last):\n",
+    "  File \"C:\\Users\\hiroa\\AppData\\Local\\anaconda3\\envs\\smpe_claude\\lib\\site-packages\\sacred\\config\\captured_function.py\", line 42, in captured_function\n    result = wrapped(*args, **kwargs)\n",
+    "  File \"C:\\Users\\hiroa\\Desktop\\smpe\\main.py\", line 787, in my_main\n    _config[\"local_results_path\"] = local_results_path\n",
+    "  File \"C:\\Users\\hiroa\\AppData\\Local\\anaconda3\\envs\\smpe_claude\\lib\\site-packages\\sacred\\config\\custom_containers.py\", line 172, in _readonly\n    raise SacredError(\n",
+    "sacred.utils.SacredError: The configuration is read-only in a captured function!\n"
+  ],
+  "heartbeat": "2025-10-20T10:49:41.018483",
+  "host": {
+    "ENV": {},
+    "cpu": "Unknown",
+    "gpus": {
+      "driver_version": "560.94",
+      "gpus": [
+        {
+          "model": "NVIDIA GeForce RTX 3060 Ti",
+          "persistence_mode": false,
+          "total_memory": 8192
+        }
+      ]
+    },
+    "hostname": "DESKTOP-BJRBA10",
+    "os": [
+      "Windows",
+      "Windows-10-10.0.26100-SP0"
+    ],
+    "python_version": "3.9.24"
+  },
+  "meta": {
+    "command": "my_main",
+    "options": {
+      "--beat-interval": null,
+      "--capture": null,
+      "--comment": null,
+      "--debug": false,
+      "--enforce_clean": false,
+      "--file_storage": null,
+      "--force": false,
+      "--help": false,
+      "--loglevel": null,
+      "--mongo_db": null,
+      "--name": null,
+      "--pdb": false,
+      "--print-config": false,
+      "--priority": null,
+      "--queue": false,
+      "--s3": null,
+      "--sql": null,
+      "--tiny_db": null,
+      "--unobserved": false,
+      "COMMAND": null,
+      "UPDATE": [
+        "env_args.time_limit=25",
+        "env_args.key=mpe:SimpleSpread-v0"
+      ],
+      "help": false,
+      "with": true
+    }
+  },
+  "resources": [],
+  "result": null,
+  "start_time": "2025-10-20T10:49:40.135092",
+  "status": "FAILED",
+  "stop_time": "2025-10-20T10:49:41.018483"
+}

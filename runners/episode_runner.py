@@ -2,6 +2,8 @@ from envs import REGISTRY as env_REGISTRY
 from functools import partial
 from components.episode_buffer import EpisodeBatch
 import numpy as np
+import os
+import json
 
 
 class EpisodeRunner:
@@ -104,6 +106,35 @@ class EpisodeRunner:
 
         if test_mode and (len(self.test_returns) == self.args.test_nepisode):
             self._log(cur_returns, cur_stats, log_prefix)
+            episode_data = {
+                'observations': [],
+                'actions': [],
+                'rewards': [],
+                'states': [],
+            }
+            
+            for t in range(self.episode_limit):
+                # データ収集
+                obs = self.env.get_obs()
+                state = self.env.get_state()
+                actions = self.mac.select_actions(self.batch, t_ep=t, t_env=self.t_env, test_mode=True)
+                
+                # 記録
+                episode_data['observations'].append([o.tolist() for o in obs])
+                episode_data['states'].append(state.tolist())
+                episode_data['actions'].append(actions[0].tolist())
+                
+                # ステップ実行
+                reward, terminated, env_info = self.env.step(actions[0])
+                episode_data['rewards'].append(reward)
+                
+                if terminated:
+                    break
+            save_path = f"results/test_episodes/episode_{self.t_env}.json"
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            with open(save_path, 'w') as f:
+                json.dump(episode_data, f, indent=2)
+
         elif self.t_env - self.log_train_stats_t >= self.args.runner_log_interval:
             self._log(cur_returns, cur_stats, log_prefix)
             if hasattr(self.mac.action_selector, "epsilon"):

@@ -42,10 +42,7 @@ def run(_run, _config, _log):
         map_name = _config["env_args"]["map_name"]
     except:
         map_name = _config["env_args"]["key"]   
-
-    map_name = map_name.replace(":", "_")
-    map_name = map_name.replace("/", "_")
-    unique_token = f"{_config['name']}_seed{_config['seed']}_{map_name}_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+    unique_token = f"{_config['name']}_seed{_config['seed']}_{map_name}_{datetime.datetime.now()}"
 
     args.unique_token = unique_token
     if args.use_tensorboard:
