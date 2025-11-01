@@ -89,6 +89,8 @@ def evaluate_sequential(args, runner):
 
 
 def run_sequential(args, logger):
+    def arg_get(obj, key, default=None):
+        return obj.get(key, default) if isinstance(obj, dict) else getattr(obj, key, default)
 
     # Init runner so we can get env info
     runner = r_REGISTRY[args.runner](args=args, logger=logger)
@@ -297,6 +299,14 @@ def run_sequential(args, logger):
 
     runner.close_env()
     logger.console_logger.info("Finished Training")
+
+    if arg_get(args, "post_render", False):
+        post_render_nepisode = arg_get(args, "post_render_nepisode", 1)
+        post_render_fps      = arg_get(args, "post_render_fps", 15)
+        logger.console_logger.info(f"Running {post_render_nepisode} visualization episode(s)...")
+        for _ in range(post_render_nepisode):
+            runner.run(test_mode=True, render=True, render_fps=post_render_fps)
+        logger.console_logger.info("Visualization finished.")
 
 
 def args_sanity_check(config, _log):

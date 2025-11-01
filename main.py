@@ -13,6 +13,7 @@ import torch as th
 from utils.logging import get_logger, Logger
 import yaml
 import pickle
+import re
 
 from run import run
 
@@ -21,6 +22,12 @@ from gym.envs.registration import register
 os.makedirs("results/sacred", exist_ok=True)
 os.makedirs("results/models", exist_ok=True)
 os.makedirs("results/tb_logs", exist_ok=True)
+
+def _safe_for_dir(s: str) -> str:
+    # Windows 禁則文字 <>:"/\|?* と先頭末尾の空白/ドットを避ける
+    s = re.sub(r'[<>:"/\\|?*]+', '_', str(s))
+    s = s.strip().strip('.')
+    return s or "unnamed"
 
 
 register(
@@ -754,7 +761,7 @@ register(
     },
 )
 
-SETTINGS['CAPTURE_MODE'] = "fd" # set to "no" if you want to see stdout/stderr in console
+SETTINGS['CAPTURE_MODE'] = "no" # set to "no" if you want to see stdout/stderr in console
 logger = get_logger()
 
 ex = Experiment("pymarl")
@@ -769,7 +776,9 @@ def my_main(_run, _config, _log):
     print("-----------my_main------------")
     # Setting the random seed throughout the modules
     config = config_copy(_config)
+    # config = dict(_config)
     np.random.seed(config["seed"])
+    random.seed(config["seed"])
     th.manual_seed(config["seed"])
     config['env_args']['seed'] = config["seed"]
 
@@ -818,7 +827,7 @@ if __name__ == '__main__':
     import torch.multiprocessing as mp
     mp.set_start_method('spawn')
 
-    params = deepcopy(sys.argv)
+    params = deepcopy(sys.argv[1:])
     th.set_num_threads(1)
 
     # Get the defaults from default.yaml
@@ -840,9 +849,65 @@ if __name__ == '__main__':
     try:
         map_name = config_dict["env_args"]["map_name"]
     except:
-        map_name = config_dict["env_args"]["key"]    
+        map_name = config_dict["env_args"]["key"]   
+
+    try:
+        map_name_raw = config_dict["env_args"]["map_name"]
+    except:
+        map_name_raw = config_dict["env_args"]["key"]
+
+    map_name = _safe_for_dir(map_name_raw) 
     
     # now add all the config to sacred
+    # ex.add_config(config_dict)
+
+    def _parse_updates(argv_tokens):
+        """
+       argv の中から:  with k1=v1 k2=v2 ... を拾って {k: v} の dict を返す
+        """
+        if "with" not in argv_tokens:
+            return {}
+        i = argv_tokens.index("with")
+        updates = {}
+        for tok in argv_tokens[i+1:]:
+            if tok.startswith("-"):  # 以降に別オプションが来たら打ち切り
+                break
+            if "=" not in tok:
+                continue
+            k, v = tok.split("=", 1)
+            # 値の型を素朴に推定（int/float/bool）
+            vv = v.strip('"').strip("'")
+            if vv.lower() in ("true", "false"):
+                vv = vv.lower() == "true"
+            else:
+                try:
+                    if "." in vv:
+                        vv = float(vv)
+                    else:
+                        vv = int(vv)
+                except ValueError:
+                    pass
+            updates[k] = vv
+        return updates
+
+    def _deep_set(d, dotted_key, value):
+        """
+        'env_args.time_limit' のようなキーを dict に反映
+        """
+        keys = dotted_key.split(".")
+        cur = d
+        for k in keys[:-1]:
+            if k not in cur or not isinstance(cur[k], dict):
+                cur[k] = {}
+            cur = cur[k]
+        cur[keys[-1]] = value
+
+    # "with" 以降の上書きを config_dict に適用
+    updates = _parse_updates(params)
+    for k, v in updates.items():
+        _deep_set(config_dict, k, v)
+
+    # Sacred に最終 config を登録
     ex.add_config(config_dict)
     
     for param in params:
@@ -859,6 +924,13 @@ if __name__ == '__main__':
     ex.observers.append(FileStorageObserver.create(file_obs_path))
     # ex.observers.append(MongoObserver())
     print("--------------------------------------")
-    ex.run_commandline(params)
+    # try:
+    #     ex.run_commandline(params)
+    # except Exception as e:
+    #     import traceback
+    #     print("!!! Sacred run failed !!!", e)
+    #     traceback.print_exc()
+    #     raise
+    ex.run()
     print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 

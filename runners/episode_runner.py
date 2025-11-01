@@ -4,6 +4,7 @@ from components.episode_buffer import EpisodeBatch
 import numpy as np
 import os
 import json
+import time
 
 
 class EpisodeRunner:
@@ -47,7 +48,7 @@ class EpisodeRunner:
         self.env.reset()
         self.t = 0
 
-    def run(self, test_mode=False):
+    def run(self, test_mode=False, render=False, render_fps=15):
         self.reset()
 
         terminated = False
@@ -70,6 +71,17 @@ class EpisodeRunner:
 
             reward, terminated, env_info = self.env.step(actions[0])
             episode_return += reward
+
+            if render:
+                try:
+                    self.env.render()
+                except TypeError:
+                    # 旧Gym APIで mode 指定が必要なケースのフォールバック
+                    try:
+                        self.env._env.render(mode="human")
+                    except Exception:
+                        pass
+                time.sleep(1.0 / max(1, render_fps))
 
             post_transition_data = {
                 "actions": actions,

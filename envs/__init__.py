@@ -10,6 +10,26 @@ from gym.spaces import flatdim
 import numpy as np
 from gym.wrappers import TimeLimit as GymTimeLimit
 
+
+class ResetCompatWrapper(gym.Wrapper):
+    """reset() の戻り値を常に (obs, info) に正規化する互換ラッパ"""
+    def reset(self, **kwargs):
+        try:
+            out = self.env.reset(**kwargs)   # 新API (obs, info) 期待
+        except TypeError:
+            # 旧APIで kwargs(特に seed) を受け付けない場合
+            out = self.env.reset()
+
+        # 形を正規化
+        if isinstance(out, tuple):
+            # (obs, info) ならそのまま / 3要素以上でも先頭を obs とみなす
+            obs = out[0]
+            info = out[1] if len(out) > 1 and isinstance(out[1], dict) else {}
+        else:
+            obs, info = out, {}
+
+        return obs, info
+
 def env_fn(env, **kwargs) -> MultiAgentEnv:
     return env(**kwargs)
 
@@ -35,16 +55,43 @@ class TimeLimit(GymTimeLimit):
         self._max_episode_steps = max_episode_steps
         self._elapsed_steps = None
 
+    # def step(self, action):
+    #     assert (
+    #         self._elapsed_steps is not None
+    #     ), "Cannot call env.step() before calling reset()"
+    #     observation, reward, done, info = self.env.step(action)
+    #     self._elapsed_steps += 1
+    #     if self._elapsed_steps >= self._max_episode_steps:
+    #         info["TimeLimit.truncated"] = not all(done)
+    #         done = len(observation) * [True]
+    #     return observation, reward, done, info
+
     def step(self, action):
-        assert (
-            self._elapsed_steps is not None
-        ), "Cannot call env.step() before calling reset()"
-        observation, reward, done, info = self.env.step(action)
+        assert self._elapsed_steps is not None, "Cannot call env.step() before reset()"
+        out = self.env.step(action)
+
+        # 内側が4 or 5 どちらでも吸収
+        if isinstance(out, tuple) and len(out) == 5:
+            observation, reward, terminated, truncated, info = out
+        else:
+            observation, reward, done, info = out
+            # 旧APIの done を terminated に割当、truncated は既定 False
+            terminated, truncated = done, False
+
         self._elapsed_steps += 1
+
+        # 既定のタイムアウト処理
         if self._elapsed_steps >= self._max_episode_steps:
-            info["TimeLimit.truncated"] = not all(done)
-            done = len(observation) * [True]
-        return observation, reward, done, info
+            # terminated が配列（マルチエージェント）でも動くように
+            def _all(x):
+                try:
+                    return all(x)
+                except TypeError:
+                    return bool(x)
+            info["TimeLimit.truncated"] = not _all(terminated)
+            truncated = True
+
+        return observation, reward, terminated, truncated, info
 
 
 class FlattenObservation(ObservationWrapper):
@@ -79,8 +126,32 @@ class FlattenObservation(ObservationWrapper):
 
 class _GymmaWrapper(MultiAgentEnv):
     def __init__(self, key, time_limit, pretrained_wrapper, **kwargs):
+        # self.episode_limit = time_limit
+        # self._env = TimeLimit(gym.make(f"{key}"), max_episode_steps=time_limit)
+        # self._env = FlattenObservation(self._env)
+
+        # if pretrained_wrapper:
+        #     self._env = getattr(pretrained, pretrained_wrapper)(self._env)
+
+        # self.n_agents = self._env.n_agents
+        # self._obs = None
+
+        # self.longest_action_space = max(self._env.action_space, key=lambda x: x.n)
+        # self.longest_observation_space = max(
+        #     self._env.observation_space, key=lambda x: x.shape
+        # )
+
+        # self._seed = kwargs["seed"]
+        # self._env.seed(self._seed)
+
         self.episode_limit = time_limit
-        self._env = TimeLimit(gym.make(f"{key}"), max_episode_steps=time_limit)
+        # self._env = gym.make(f"{key}", disable_env_checker=True)
+        # self._env = TimeLimit(self._env, max_episode_steps=time_limit)
+        # self._env = FlattenObservation(self._env)
+
+        base_env = gym.make(f"{key}")
+        base_env = ResetCompatWrapper(base_env)                  # ← 追加（最初に噛ませる）
+        self._env = TimeLimit(base_env, max_episode_steps=time_limit)
         self._env = FlattenObservation(self._env)
 
         if pretrained_wrapper:
@@ -94,13 +165,41 @@ class _GymmaWrapper(MultiAgentEnv):
             self._env.observation_space, key=lambda x: x.shape
         )
 
+        # self._seed = kwargs.get("seed", None)
         self._seed = kwargs["seed"]
-        self._env.seed(self._seed)
+
+    # def step(self, actions):
+    #     """ Returns reward, terminated, info """
+    #     actions = [int(a) for a in actions]
+    #     self._obs, reward, done, info = self._env.step(actions)
+    #     self._obs = [
+    #         np.pad(
+    #             o,
+    #             (0, self.longest_observation_space.shape[0] - len(o)),
+    #             "constant",
+    #             constant_values=0,
+    #         )
+    #         for o in self._obs
+    #     ]
+
+        # return float(sum(reward)), all(done), {}
 
     def step(self, actions):
-        """ Returns reward, terminated, info """
         actions = [int(a) for a in actions]
-        self._obs, reward, done, info = self._env.step(actions)
+        out = self._env.step(actions)
+
+        if isinstance(out, tuple) and len(out) == 5:
+            obs, reward, terminated, truncated, info = out
+            # terminated / truncated が配列でも True/False 配列として扱う
+            if not isinstance(terminated, (list, tuple, np.ndarray)):
+                terminated = [bool(terminated)] * self.n_agents
+            if not isinstance(truncated, (list, tuple, np.ndarray)):
+                truncated = [bool(truncated)] * self.n_agents
+            done = [bool(t) or bool(u) for t, u in zip(terminated, truncated)]
+        else:
+            obs, reward, done, info = out
+
+        # 観測のパディング
         self._obs = [
             np.pad(
                 o,
@@ -108,33 +207,34 @@ class _GymmaWrapper(MultiAgentEnv):
                 "constant",
                 constant_values=0,
             )
-            for o in self._obs
+            for o in obs
         ]
 
+        # 既存フレームワークに合わせて：総報酬, すべて終了?, info（空）を返す
         return float(sum(reward)), all(done), {}
 
     def get_obs(self):
         """ Returns all agent observations in a list """
         return self._obs
 
+    # def get_obs_agent(self, agent_id):
+    #     """ Returns observation for agent_id """
+    #     raise self._obs[agent_id]
+
+    # def get_obs_size(self):
+    #     """ Returns the shape of the observation """
+    #     return flatdim(self.longest_observation_space)
+
+    # def get_state(self):
+    #     return np.concatenate(self._obs, axis=0).astype(np.float32)
+
+    # def get_state_size(self):
+    #     """ Returns the shape of the state"""
+    #     return self.n_agents * flatdim(self.longest_observation_space)
+
     def get_obs_agent(self, agent_id):
         """ Returns observation for agent_id """
-        raise self._obs[agent_id]
-
-    def get_obs_size(self):
-        """ Returns the shape of the observation """
-        return flatdim(self.longest_observation_space)
-
-    def get_state(self):
-        return np.concatenate(self._obs, axis=0).astype(np.float32)
-
-    def get_state_size(self):
-        """ Returns the shape of the state"""
-        return self.n_agents * flatdim(self.longest_observation_space)
-
-    def get_obs_agent(self, agent_id):
-        """ Returns observation for agent_id """
-        raise self._obs[agent_id]
+        return self._obs[agent_id]
 
     def get_obs_size(self):
         """ Returns the shape of the observation """
@@ -167,7 +267,16 @@ class _GymmaWrapper(MultiAgentEnv):
 
     # def reset(self):
     #     """ Returns initial observations and states"""
-    #     self._obs = self._env.reset()
+        
+    #     # 1. 環境をリセットし、obsとinfoを安全に受け取る（1回のみ実行）
+    #     reset_output = self._env.reset()
+    #     if isinstance(reset_output, tuple) and len(reset_output) == 2:
+    #          self._obs, info = reset_output
+    #     else:
+    #          self._obs = reset_output
+    #          info = {} # infoを空の辞書として定義
+        
+    #     # 2. 観測のパディング処理を適用 (自己完結させる)
     #     self._obs = [
     #         np.pad(
     #             o,
@@ -178,28 +287,17 @@ class _GymmaWrapper(MultiAgentEnv):
     #         for o in self._obs
     #     ]
 
-    #     # --- 10/20 最新のgym環境がinfoの戻り値も必要とするため追加
-    #     reset_output = self._env.reset()
-    #     if isinstance(reset_output, tuple) and len(reset_output) == 2:
-    #          self._obs, info = reset_output
-    #     else:
-    #          self._obs = reset_output
-    #          info = {} # infoを空の辞書として定義
-
     #     return self.get_obs(), self.get_state()
 
     def reset(self):
-        """ Returns initial observations and states"""
-        
-        # 1. 環境をリセットし、obsとinfoを安全に受け取る（1回のみ実行）
-        reset_output = self._env.reset()
-        if isinstance(reset_output, tuple) and len(reset_output) == 2:
-             self._obs, info = reset_output
-        else:
-             self._obs = reset_output
-             info = {} # infoを空の辞書として定義
-        
-        # 2. 観測のパディング処理を適用 (自己完結させる)
+        # Gym>=0.26: reset(seed=...), 旧Gym: seedを kwargs で受けない → 互換ラッパが吸収
+        try:
+            obs, _info = self._env.reset(seed=self._seed)
+        except TypeError:
+            # 旧APIでも ResetCompatWrapper が (obs, info) で返す
+            obs, _info = self._env.reset()
+
+        # パディング
         self._obs = [
             np.pad(
                 o,
@@ -207,10 +305,10 @@ class _GymmaWrapper(MultiAgentEnv):
                 "constant",
                 constant_values=0,
             )
-            for o in self._obs
+            for o in obs
         ]
+        # episode_runner は戻り値を使わないので return 不要
 
-        return self.get_obs(), self.get_state()
 
     def render(self):
         self._env.render()
@@ -218,8 +316,10 @@ class _GymmaWrapper(MultiAgentEnv):
     def close(self):
         self._env.close()
 
-    def seed(self):
-        return self._env.seed
+    # def seed(self):
+    #     return self._env.seed
+    def seed(self, seed=None):
+        self._seed = seed
 
     def save_replay(self):
         pass
